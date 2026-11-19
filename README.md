@@ -24,6 +24,8 @@ Run `flutter pub get`, then import the package:
 import 'package:flutter_image_processing_toolkit/flutter_image_processing_toolkit.dart';
 ```
 
+Flutter 3.50 or later (Dart 3.12 or later) is required.
+
 ## Usage
 
 ```dart
