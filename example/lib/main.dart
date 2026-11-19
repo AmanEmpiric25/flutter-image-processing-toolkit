@@ -22,15 +22,9 @@ class CompressionDemoApp extends StatelessWidget {
 }
 
 class CompressionDemoPage extends StatefulWidget {
-  const CompressionDemoPage({
-    super.key,
-    this.imagePicker,
-    this.imageSelector,
-    this.compressor,
-  });
+  const CompressionDemoPage({super.key, this.imagePicker, this.compressor});
 
   final ImagePicker? imagePicker;
-  final Future<XFile?> Function()? imageSelector;
   final ImageCompressionService? compressor;
 
   @override
@@ -49,9 +43,7 @@ class _CompressionDemoPageState extends State<CompressionDemoPage> {
   String? _error;
 
   Future<void> _selectImage() async {
-    final picked =
-        await (widget.imageSelector?.call() ??
-            _imagePicker.pickImage(source: ImageSource.gallery));
+    final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
     if (picked == null || !mounted) return;
     setState(() {
       _original = File(picked.path);
@@ -129,25 +121,8 @@ class _CompressionDemoPageState extends State<CompressionDemoPage> {
                     : (value) => setState(() => _quality = value.round()),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<ImageOutputFormat?>(
-                key: ValueKey(_outputFormat),
-                initialValue: _outputFormat,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Output format',
-                ),
-                items: [
-                  const DropdownMenuItem(
-                    value: null,
-                    child: Text('Keep input format'),
-                  ),
-                  ...ImageOutputFormat.values.map(
-                    (format) => DropdownMenuItem(
-                      value: format,
-                      child: Text(_formatLabel(format)),
-                    ),
-                  ),
-                ],
+              OutputFormatSelector(
+                value: _outputFormat,
                 onChanged: _isWorking
                     ? null
                     : (format) => setState(() => _outputFormat = format),
@@ -253,6 +228,34 @@ String _formatBytes(int bytes) {
   if (bytes < 1024) return '$bytes B';
   if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
   return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
+class OutputFormatSelector extends StatelessWidget {
+  const OutputFormatSelector({super.key, required this.value, this.onChanged});
+
+  final ImageOutputFormat? value;
+  final ValueChanged<ImageOutputFormat?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) =>
+      DropdownButtonFormField<ImageOutputFormat?>(
+        key: ValueKey(value),
+        initialValue: value,
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          labelText: 'Output format',
+        ),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('Keep input format')),
+          ...ImageOutputFormat.values.map(
+            (format) => DropdownMenuItem(
+              value: format,
+              child: Text(_formatLabel(format)),
+            ),
+          ),
+        ],
+        onChanged: onChanged,
+      );
 }
 
 String _formatLabel(ImageOutputFormat format) => switch (format) {
