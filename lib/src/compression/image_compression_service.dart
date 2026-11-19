@@ -34,6 +34,7 @@ class ImageCompressionService {
     );
     final expectedOutput = File(outputPath);
 
+    File? codecOutput;
     try {
       await outputDirectory.create(recursive: true);
       final outputPathFromCodec = await _compressor.compress(
@@ -48,25 +49,39 @@ class ImageCompressionService {
           'The native codec did not produce an output file.',
         );
       }
-      final output = File(outputPathFromCodec);
+      final output = codecOutput = File(outputPathFromCodec);
       if (!await output.exists()) {
         throw const ImageProcessingException(
           ImageProcessingErrorCode.compressionFailed,
           'The native codec returned a path that does not exist.',
         );
       }
+      if (path.equals(output.path, input.path)) {
+        throw const ImageProcessingException(
+          ImageProcessingErrorCode.compressionFailed,
+          'The native codec returned the source file instead of a new '
+          'output file.',
+        );
+      }
+      final compressedSize = await output.length();
+      if (compressedSize == 0) {
+        throw const ImageProcessingException(
+          ImageProcessingErrorCode.compressionFailed,
+          'The native codec produced an empty output file.',
+        );
+      }
       return CompressionResult(
         originalFile: input,
         outputFile: output,
         originalSizeBytes: originalSize,
-        compressedSizeBytes: await output.length(),
+        compressedSizeBytes: compressedSize,
         outputFormat: format,
       );
     } on ImageProcessingException {
-      await _deleteIfPresent(expectedOutput);
+      await _discardPartialOutput(input, expectedOutput, codecOutput);
       rethrow;
     } catch (error) {
-      await _deleteIfPresent(expectedOutput);
+      await _discardPartialOutput(input, expectedOutput, codecOutput);
       throw ImageProcessingException(
         ImageProcessingErrorCode.compressionFailed,
         'Unable to compress the image.',
@@ -114,6 +129,23 @@ class ImageCompressionService {
         'Unsupported image format: ${extension.isEmpty ? '(none)' : extension}.',
       ),
     };
+  }
+
+  /// Removes anything the failed operation may have written.
+  ///
+  /// A codec can report a path other than the one it was given, so both are
+  /// cleared. [input] is never removed: the source file must survive a
+  /// failure even if the codec named it as its own output.
+  Future<void> _discardPartialOutput(
+    File input,
+    File expectedOutput,
+    File? codecOutput,
+  ) async {
+    await _deleteIfPresent(expectedOutput);
+    if (codecOutput == null) return;
+    if (path.equals(codecOutput.path, expectedOutput.path)) return;
+    if (path.equals(codecOutput.path, input.path)) return;
+    await _deleteIfPresent(codecOutput);
   }
 
   Future<void> _deleteIfPresent(File file) async {
