@@ -6,8 +6,8 @@ repository: https://github.com/Niralempiric/flutter-image-processing-toolkit
 issue_tracker: https://github.com/Niralempiric/flutter-image-processing-toolkit/issues
 
 environment:
-  sdk: ^3.10.7
-  flutter: ">=1.17.0"
+  sdk: ^3.12.0
+  flutter: ">=3.50.0"
 
 dependencies:
   flutter:
