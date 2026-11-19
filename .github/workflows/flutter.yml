@@ -22,3 +22,5 @@ jobs:
         working-directory: example
       - run: flutter test
         working-directory: example
+      - run: flutter build apk --debug
+        working-directory: example
