@@ -1,0 +1,24 @@
+name: Flutter checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test example/lib example/test
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter pub get
+        working-directory: example
+      - run: flutter test
+        working-directory: example
