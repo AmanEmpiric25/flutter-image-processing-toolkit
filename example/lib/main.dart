@@ -38,6 +38,7 @@ class _CompressionDemoPageState extends State<CompressionDemoPage> {
   File? _original;
   CompressionResult? _result;
   int _quality = 80;
+  ImageOutputFormat? _outputFormat;
   bool _isWorking = false;
   String? _error;
 
@@ -64,6 +65,7 @@ class _CompressionDemoPageState extends State<CompressionDemoPage> {
         source,
         options: ImageCompressionOptions(
           quality: _quality,
+          outputFormat: _outputFormat,
           outputDirectory: Directory('${documents.path}/compressed-images'),
         ),
       );
@@ -118,6 +120,14 @@ class _CompressionDemoPageState extends State<CompressionDemoPage> {
                     ? null
                     : (value) => setState(() => _quality = value.round()),
               ),
+              const SizedBox(height: 8),
+              OutputFormatSelector(
+                value: _outputFormat,
+                onChanged: _isWorking
+                    ? null
+                    : (format) => setState(() => _outputFormat = format),
+              ),
+              const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _isWorking ? null : _compress,
                 icon: _isWorking
@@ -219,3 +229,38 @@ String _formatBytes(int bytes) {
   if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
   return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
 }
+
+class OutputFormatSelector extends StatelessWidget {
+  const OutputFormatSelector({super.key, required this.value, this.onChanged});
+
+  final ImageOutputFormat? value;
+  final ValueChanged<ImageOutputFormat?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) =>
+      DropdownButtonFormField<ImageOutputFormat?>(
+        key: ValueKey(value),
+        initialValue: value,
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          labelText: 'Output format',
+        ),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('Keep input format')),
+          ...ImageOutputFormat.values.map(
+            (format) => DropdownMenuItem(
+              value: format,
+              child: Text(_formatLabel(format)),
+            ),
+          ),
+        ],
+        onChanged: onChanged,
+      );
+}
+
+String _formatLabel(ImageOutputFormat format) => switch (format) {
+  ImageOutputFormat.jpeg => 'JPEG',
+  ImageOutputFormat.png => 'PNG',
+  ImageOutputFormat.webp => 'WebP',
+  ImageOutputFormat.heic => 'HEIC',
+};
