@@ -68,12 +68,32 @@ flutter run
 
 ## Testing
 
+Host-side checks, no device required:
+
 ```sh
-dart format --output=none --set-exit-if-changed lib test example/lib example/test
+dart format --output=none --set-exit-if-changed lib test example/lib example/test example/integration_test
 flutter analyze
 flutter test
 cd example && flutter test
 ```
+
+### Integration tests
+
+`example/integration_test/compression_test.dart` drives the real Android and iOS
+codecs, which the unit tests replace with an injected adapter. It needs a
+connected device, emulator, or simulator:
+
+```sh
+cd example
+flutter devices
+flutter test integration_test
+```
+
+The test copies the bundled `assets/sample_photo.jpg` fixture into the app
+documents directory, compresses it into a subdirectory there, and deletes
+everything it wrote on teardown. It never reads the gallery and never writes to
+external storage, so it needs no runtime storage permission. CI does not run it:
+GitHub-hosted runners have no attached device.
 
 ## Contributing
 
