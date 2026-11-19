@@ -136,6 +136,99 @@ void main() {
       expect(await outputDirectory.list().isEmpty, isTrue);
     },
   );
+
+  for (final extension in const ['jpg', 'png', 'webp', 'heic']) {
+    test('reports invalid $extension bytes as a codec failure', () async {
+      final original = await _write(sandbox, 'corrupt.$extension', const [
+        0x00,
+        0x01,
+        0x02,
+        0x03,
+      ]);
+      final outputDirectory = Directory('${sandbox.path}/exports');
+      final service = ImageCompressionService(
+        compressor: _PartialWriteThenNullCompressor(),
+      );
+
+      await expectLater(
+        service.compress(
+          original,
+          options: ImageCompressionOptions(outputDirectory: outputDirectory),
+        ),
+        throwsA(
+          isA<ImageProcessingException>().having(
+            (error) => error.code,
+            'code',
+            ImageProcessingErrorCode.compressionFailed,
+          ),
+        ),
+      );
+      expect(await outputDirectory.list().isEmpty, isTrue);
+      expect(await original.readAsBytes(), [0x00, 0x01, 0x02, 0x03]);
+    });
+  }
+
+  test('treats an empty codec output as a failure and removes it', () async {
+    final original = await _write(sandbox, 'photo.jpg', [1, 2, 3]);
+    final outputDirectory = Directory('${sandbox.path}/exports');
+    final service = ImageCompressionService(compressor: _FakeCompressor([]));
+
+    await expectLater(
+      service.compress(
+        original,
+        options: ImageCompressionOptions(outputDirectory: outputDirectory),
+      ),
+      throwsA(
+        isA<ImageProcessingException>().having(
+          (error) => error.code,
+          'code',
+          ImageProcessingErrorCode.compressionFailed,
+        ),
+      ),
+    );
+    expect(await outputDirectory.list().isEmpty, isTrue);
+    expect(await original.readAsBytes(), [1, 2, 3]);
+  });
+
+  test('removes a partial file written outside the expected path', () async {
+    final original = await _write(sandbox, 'photo.jpg', [1, 2, 3]);
+    final outputDirectory = Directory('${sandbox.path}/exports');
+    final service = ImageCompressionService(compressor: _StrayPathCompressor());
+
+    await expectLater(
+      service.compress(
+        original,
+        options: ImageCompressionOptions(outputDirectory: outputDirectory),
+      ),
+      throwsA(isA<ImageProcessingException>()),
+    );
+    expect(await outputDirectory.list().isEmpty, isTrue);
+  });
+
+  test('keeps the source file when the codec returns the input path', () async {
+    final original = await _write(sandbox, 'photo.jpg', [1, 2, 3]);
+    final outputDirectory = Directory('${sandbox.path}/exports');
+    final service = ImageCompressionService(
+      compressor: _SourcePathCompressor(),
+    );
+
+    await expectLater(
+      service.compress(
+        original,
+        options: ImageCompressionOptions(outputDirectory: outputDirectory),
+      ),
+      throwsA(
+        isA<ImageProcessingException>().having(
+          (error) => error.code,
+          'code',
+          ImageProcessingErrorCode.compressionFailed,
+        ),
+      ),
+    );
+    expect(await original.exists(), isTrue);
+    expect(await original.readAsBytes(), [1, 2, 3]);
+    expect(await outputDirectory.list().isEmpty, isTrue);
+  });
 }
 
 Future<File> _write(Directory directory, String name, List<int> bytes) async {
@@ -177,4 +270,45 @@ class _ThrowingCompressor implements ImageCompressor {
   }) {
     throw StateError('native failure');
   }
+}
+
+/// Writes to the path it was given and then reports failure, the way a native
+/// codec can when it aborts partway through encoding.
+class _PartialWriteThenNullCompressor implements ImageCompressor {
+  @override
+  Future<String?> compress({
+    required String inputPath,
+    required String outputPath,
+    required int quality,
+    required ImageOutputFormat format,
+  }) async {
+    await File(outputPath).writeAsBytes(const [0xFF, 0xD8]);
+    return null;
+  }
+}
+
+/// Reports an empty file at a path other than the one it was given.
+class _StrayPathCompressor implements ImageCompressor {
+  @override
+  Future<String?> compress({
+    required String inputPath,
+    required String outputPath,
+    required int quality,
+    required ImageOutputFormat format,
+  }) async {
+    final stray = File('${File(outputPath).parent.path}/stray-output.jpg');
+    await stray.writeAsBytes(const []);
+    return stray.path;
+  }
+}
+
+/// Reports the source file as its own output.
+class _SourcePathCompressor implements ImageCompressor {
+  @override
+  Future<String?> compress({
+    required String inputPath,
+    required String outputPath,
+    required int quality,
+    required ImageOutputFormat format,
+  }) async => inputPath;
 }

@@ -53,7 +53,7 @@ Omit `outputFormat` to use the supported source format. Omit `outputDirectory` t
 
 ## Platforms and limitations
 
-Android and iOS are supported through `flutter_image_compress`. Codec availability, notably HEIC and WebP output, depends on the platform and device; requests unavailable on the current device fail with `compressionFailed`. Files are validated by extension before native decoding, so a corrupt file with a supported extension may still fail during native compression. The package does not target web, macOS, Windows, or Linux in this release.
+Android and iOS are supported through `flutter_image_compress`. Codec availability, notably HEIC and WebP output, depends on the platform and device; requests unavailable on the current device fail with `compressionFailed`. Files are validated by extension before native decoding, so a corrupt file with a supported extension may still fail during native compression. A failed operation leaves nothing behind: a partial or empty file written by the codec is removed, and the source file is never deleted, even if the codec reports the source as its own output. An empty codec output is reported as `compressionFailed` rather than as a result claiming 100% saved. The package does not target web, macOS, Windows, or Linux in this release.
 
 Compression is asynchronous and uses the native codec, but applications should still present a loading state for large images. Generated output remains under caller control; remove exported files when they are no longer needed.
 
