@@ -104,11 +104,11 @@ void main() {
     );
 
     await tester.tap(find.text('Select image'));
-    await tester.pumpAndSettle();
+    await tester.pump();
     await tester.tap(find.byType(DropdownButtonFormField<ImageOutputFormat?>));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('WebP').last);
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('Output format'), findsOneWidget);
     expect(find.text('WebP'), findsOneWidget);
