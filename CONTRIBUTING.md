@@ -12,7 +12,7 @@ The repository owner maintains the roadmap, creates issues, reviews changes, mer
 
 ## Quality bar
 
-Do not expose plugin-specific types through the package API. Preserve the original image, cover observable failures with tests, update documentation when behavior changes, and avoid adding unimplemented future features. CI must pass before merge.
+Do not expose plugin-specific types through the package API. Preserve the original image, cover observable failures with tests, update documentation when behavior changes, and avoid adding unimplemented future features. CI runs formatting, analysis, package and example tests, and an Android debug build; all checks must pass before merge.
 
 ## Reporting issues
 
